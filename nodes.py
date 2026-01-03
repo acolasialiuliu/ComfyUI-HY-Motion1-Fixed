@@ -748,6 +748,80 @@ class HYMotionExportFBX:
 
 
 # ============================================================================
+# Node 8: HYMotion Preview Animation (Three.js with GLB Export)
+# ============================================================================
+
+class HYMotionPreviewAnimation:
+    """
+    Interactive 3D motion preview with Three.js.
+    Supports playback controls and GLB export with skeleton animation.
+    """
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "motion_data": ("HYMOTION_DATA",),
+            },
+            "optional": {
+                "sample_index": ("INT", {"default": 0, "min": 0, "max": 3}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("motion_data",)
+    FUNCTION = "preview"
+    CATEGORY = "HY-Motion"
+    OUTPUT_NODE = True
+
+    def preview(self, motion_data: HYMotionData, sample_index: int = 0):
+        import json
+        from .hymotion.utils.geometry import rot6d_to_rotation_matrix, matrix_to_quaternion
+
+        idx = min(sample_index, motion_data.batch_size - 1)
+
+        # Extract motion data for the selected sample
+        rot6d = motion_data.output_dict["rot6d"][idx]  # (num_frames, 22, 6)
+        transl = motion_data.output_dict["transl"][idx]  # (num_frames, 3)
+
+        # Convert rot6d to quaternion using the same math as FBX export
+        # rot6d -> rotation_matrix -> quaternion
+        if hasattr(rot6d, 'cpu'):
+            rot6d_tensor = rot6d.cpu()
+        else:
+            rot6d_tensor = torch.from_numpy(rot6d).float()
+
+        # (num_frames, 22, 6) -> (num_frames, 22, 3, 3)
+        rot_matrices = rot6d_to_rotation_matrix(rot6d_tensor)
+        # (num_frames, 22, 3, 3) -> (num_frames, 22, 4) quaternion [w, x, y, z]
+        quaternions = matrix_to_quaternion(rot_matrices)
+
+        # Convert to numpy
+        quaternions_np = quaternions.numpy()
+        if hasattr(transl, 'cpu'):
+            transl_np = transl.cpu().numpy()
+        else:
+            transl_np = transl
+
+        num_frames = quaternions_np.shape[0]
+        num_joints = quaternions_np.shape[1]
+
+        # Flatten for transfer: quaternions are [w, x, y, z] format
+        motion_json = json.dumps({
+            "quaternions": quaternions_np.flatten().tolist(),  # (num_frames * num_joints * 4)
+            "transl": transl_np.flatten().tolist(),  # (num_frames * 3)
+            "num_frames": int(num_frames),
+            "num_joints": int(num_joints),
+            "fps": 30,
+            "text": motion_data.text,
+            "duration": motion_data.duration,
+        })
+
+        print(f"[HY-Motion] Preview Animation: {num_frames} frames, {num_joints} joints")
+        return {"ui": {"motion_data": [motion_json]}, "result": (motion_json,)}
+
+
+# ============================================================================
 # Node Registration
 # ============================================================================
 
@@ -760,6 +834,7 @@ NODE_CLASS_MAPPINGS = {
     "HYMotionPreview": HYMotionPreview,
     "HYMotionSaveNPZ": HYMotionSaveNPZ,
     "HYMotionExportFBX": HYMotionExportFBX,
+    "HYMotionPreviewAnimation": HYMotionPreviewAnimation,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -771,4 +846,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HYMotionPreview": "HY-Motion Preview",
     "HYMotionSaveNPZ": "HY-Motion Save NPZ",
     "HYMotionExportFBX": "HY-Motion Export FBX",
+    "HYMotionPreviewAnimation": "HY-Motion Preview Animation (3D)",
 }

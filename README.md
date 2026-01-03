@@ -7,6 +7,8 @@ A ComfyUI plugin based on [HY-Motion 1.0](https://github.com/Tencent-Hunyuan/HY-
 - **Text-to-Motion Generation**: Generate 3D human motion from text descriptions
 - **Multi-sample Generation**: Generate multiple motion samples simultaneously
 - **Motion Preview**: Real-time skeleton preview rendering
+- **3D Animation Preview**: Interactive Three.js viewer with playback controls
+- **GLB Export**: Export to GLB format with skeleton animation (no dependencies required)
 - **FBX Export**: Export to standard FBX format for Maya/Blender and other DCC tools
 - **NPZ Save**: Save in universal NPZ format
 - **GGUF Support**: Load quantized Qwen3-8B GGUF models for lower VRAM usage
@@ -108,7 +110,18 @@ Core generation node.
 | num_samples | Number of samples to generate |
 
 ### HY-Motion Preview
-Render skeleton preview images.
+Render skeleton preview images (2D frame sequence).
+
+### HY-Motion Preview Animation (3D)
+Interactive 3D animation preview with Three.js viewer.
+
+| Feature | Description |
+|---------|-------------|
+| Playback | Play/pause, speed control, timeline scrubbing |
+| Display | Toggle skeleton, mesh, grid visibility |
+| Export | Download GLB file with skeleton animation |
+
+**This node provides a pure frontend GLB export that requires no additional Python dependencies.**
 
 ### HY-Motion Export FBX
 Export FBX file (requires fbxsdkpy installation).
@@ -121,9 +134,10 @@ Save in NPZ format.
 ```
 [HY-Motion Load LLM] ──┐
                        ├──> [HY-Motion Encode Text] ──┐
-[HY-Motion Load Network] ─────────────────────────────┴──> [HY-Motion Generate] ──> [HY-Motion Preview]
-                                                                                 └──> [HY-Motion Save NPZ]
-                                                                                 └──> [HY-Motion Export FBX]
+[HY-Motion Load Network] ─────────────────────────────┴──> [HY-Motion Generate] ──┬──> [HY-Motion Preview]
+                                                                                  ├──> [HY-Motion Preview Animation (3D)] ──> Export GLB
+                                                                                  ├──> [HY-Motion Save NPZ]
+                                                                                  └──> [HY-Motion Export FBX]
 ```
 
 For GGUF:
@@ -151,6 +165,8 @@ For GGUF:
    ```bash
    pip install fbxsdkpy --extra-index-url https://gitlab.inria.fr/api/v4/projects/18692/packages/pypi/simple
    ```
+
+   **Having trouble installing fbxsdkpy?** Use the **HY-Motion Preview Animation (3D)** node instead! It provides a pure frontend GLB export with skeleton animation that works without any additional Python dependencies.
 
 4. **Text Encoder**: CLIP model will be downloaded automatically on first use. Qwen3-8B will be downloaded automatically when using Load LLM node (not GGUF).
 
