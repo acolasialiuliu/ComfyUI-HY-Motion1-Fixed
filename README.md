@@ -47,7 +47,7 @@ ComfyUI/
             │       └── latest.ckpt
             └── GGUF/                    # Optional: for GGUF models
                 └── Qwen3-8B-Q4_K_M.gguf
- 	    └── clip-vit-large-patch14
+ 	         └── clip-vit-large-patch14
             └── Qwen3-0.6B （如果你只使用gguf模型，那这里只下载配置文件即可）
 ```
 
