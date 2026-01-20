@@ -1,5 +1,9 @@
 # ComfyUI-HY-Motion1
 
+此版本扩展由 b站 点满兴趣的冒险者 修改。792818521@qq.com
+
+开放了大模型选择范围，修复了显存溢出等问题。完善了部署文档。
+
 A ComfyUI plugin based on [HY-Motion 1.0](https://github.com/Tencent-Hunyuan/HY-Motion-1.0) for text-to-3D human motion generation.
 
 ## Features
@@ -43,6 +47,8 @@ ComfyUI/
             │       └── latest.ckpt
             └── GGUF/                    # Optional: for GGUF models
                 └── Qwen3-8B-Q4_K_M.gguf
+ 	    └── clip-vit-large-patch14
+            └── Qwen3-0.6B （如果你只使用gguf模型，那这里只下载配置文件即可）
 ```
 
 Download using huggingface-cli:
@@ -60,132 +66,146 @@ or manually download from https://huggingface.co/tencent/HY-Motion-1.0/tree/main
 ## Node Documentation
 
 ### HY-Motion Load LLM
+
 Load Qwen3-8B LLM from HuggingFace (supports BitsAndBytes quantization).
 
-| Parameter | Description |
-|-----------|-------------|
-| quantization | Quantization mode: `none` / `int8` / `int4` |
+| Parameter      | Description                                              |
+| -------------- | -------------------------------------------------------- |
+| quantization   | Quantization mode:`none` / `int8` / `int4`         |
 | offload_to_cpu | Load model on CPU instead of GPU (slower but saves VRAM) |
 
 ### HY-Motion Load LLM (GGUF)
+
 Load Qwen3-8B LLM from GGUF file.
 
-| Parameter | Description |
-|-----------|-------------|
-| gguf_file | Select GGUF file from the list |
+| Parameter      | Description                                              |
+| -------------- | -------------------------------------------------------- |
+| gguf_file      | Select GGUF file from the list                           |
 | offload_to_cpu | Load model on CPU instead of GPU (slower but saves VRAM) |
 
 ### HY-Motion Load Prompter
+
 Load Text2MotionPrompter LLM for prompt rewriting and duration estimation.
 
-| Parameter | Description |
-|-----------|-------------|
-| model_source | Model source: `(auto download)` or local path |
+| Parameter      | Description                                              |
+| -------------- | -------------------------------------------------------- |
+| model_source   | Model source:`(auto download)` or local path           |
 | offload_to_cpu | Load model on CPU instead of GPU (slower but saves VRAM) |
 
 **Note**: The model will be automatically downloaded from HuggingFace on first use (~2-3GB).
 
 ### HY-Motion Rewrite Prompt
+
 Rewrite text prompt and estimate motion duration using LLM.
 
-| Parameter | Description |
-|-----------|-------------|
-| prompter | Prompter model from Load Prompter node |
-| text | Original text description (supports Chinese and English) |
+| Parameter | Description                                              |
+| --------- | -------------------------------------------------------- |
+| prompter  | Prompter model from Load Prompter node                   |
+| text      | Original text description (supports Chinese and English) |
 
-| Output | Description |
-|--------|-------------|
-| rewritten_text | Optimized English description |
-| duration | Estimated motion duration in seconds |
+| Output         | Description                          |
+| -------------- | ------------------------------------ |
+| rewritten_text | Optimized English description        |
+| duration       | Estimated motion duration in seconds |
 
 **Note**: You need to download GGUF files manually from https://huggingface.co/Qwen/Qwen3-8B-GGUF
 
 Place GGUF files in: `ComfyUI/models/HY-Motion/ckpts/GGUF/`
 
 Recommended GGUF versions:
-| File | Size | Description |
-|------|------|-------------|
+
+| File                 | Size    | Description                                    |
+| -------------------- | ------- | ---------------------------------------------- |
 | Qwen3-8B-Q4_K_M.gguf | 5.03 GB | Best balance of quality and size (recommended) |
-| Qwen3-8B-Q5_K_M.gguf | 5.85 GB | Higher quality |
-| Qwen3-8B-Q6_K.gguf | 6.73 GB | Near original quality |
-| Qwen3-8B-Q8_0.gguf | ~8 GB | Almost lossless |
+| Qwen3-8B-Q5_K_M.gguf | 5.85 GB | Higher quality                                 |
+| Qwen3-8B-Q6_K.gguf   | 6.73 GB | Near original quality                          |
+| Qwen3-8B-Q8_0.gguf   | ~8 GB   | Almost lossless                                |
 
 ### HY-Motion Load Network
+
 Load Motion Diffusion Network.
 
-| Parameter | Description |
-|-----------|-------------|
-| model_name | Select model version: `HY-Motion-1.0` or `HY-Motion-1.0-Lite` |
+| Parameter  | Description                                                      |
+| ---------- | ---------------------------------------------------------------- |
+| model_name | Select model version:`HY-Motion-1.0` or `HY-Motion-1.0-Lite` |
 
 ### HY-Motion Encode Text
+
 Encode text prompt for motion generation.
 
-| Parameter | Description |
-|-----------|-------------|
-| llm | LLM model from Load LLM node |
-| text | Motion description text |
+| Parameter | Description                  |
+| --------- | ---------------------------- |
+| llm       | LLM model from Load LLM node |
+| text      | Motion description text      |
 
 ### HY-Motion Generate
+
 Core generation node.
 
-| Parameter | Description |
-|-----------|-------------|
-| network | Network from Load Network node |
+| Parameter    | Description                        |
+| ------------ | ---------------------------------- |
+| network      | Network from Load Network node     |
 | conditioning | Conditioning from Encode Text node |
-| duration | Motion duration (seconds) |
-| seed | Random seed |
-| cfg_scale | Text guidance scale |
-| num_samples | Number of samples to generate |
+| duration     | Motion duration (seconds)          |
+| seed         | Random seed                        |
+| cfg_scale    | Text guidance scale                |
+| num_samples  | Number of samples to generate      |
 
 ### HY-Motion Preview
+
 Render skeleton preview images (2D frame sequence).
 
 ### HY-Motion Preview Animation (3D)
+
 Interactive 3D animation preview with Three.js viewer.
 
-| Feature | Description |
-|---------|-------------|
+| Feature  | Description                                   |
+| -------- | --------------------------------------------- |
 | Playback | Play/pause, speed control, timeline scrubbing |
-| Display | Toggle skeleton, mesh, grid visibility |
-| Export | Download GLB file with skeleton animation |
+| Display  | Toggle skeleton, mesh, grid visibility        |
+| Export   | Download GLB file with skeleton animation     |
 
 **This node provides a pure frontend GLB export that requires no additional Python dependencies.**
 
 > **Note**: This node does NOT automatically save files. You must manually click the "Export GLB" button in the viewer to download the animation file.
 
 ### HY-Motion Export FBX
+
 Export FBX file with optional custom Mixamo character retargeting (requires fbxsdkpy installation).
 
-| Parameter | Description |
-|-----------|-------------|
-| motion_data | Motion data from Generate node |
-| output_dir | Output subdirectory in ComfyUI output folder |
-| filename_prefix | Prefix for output filenames |
-| custom_fbx_path | (Optional) Path to custom FBX model for retargeting |
-| yaw_offset | (Optional) Y-axis rotation offset in degrees (-180 to 180) |
-| scale | (Optional) Force scale multiplier (0 = auto) |
+| Parameter       | Description                                                |
+| --------------- | ---------------------------------------------------------- |
+| motion_data     | Motion data from Generate node                             |
+| output_dir      | Output subdirectory in ComfyUI output folder               |
+| filename_prefix | Prefix for output filenames                                |
+| custom_fbx_path | (Optional) Path to custom FBX model for retargeting        |
+| yaw_offset      | (Optional) Y-axis rotation offset in degrees (-180 to 180) |
+| scale           | (Optional) Force scale multiplier (0 = auto)               |
 
 #### Custom FBX Path Rules
 
-| Input | Resolved Path |
-|-------|---------------|
-| `3d/char.fbx` | `ComfyUI/input/3d/char.fbx` (default to input/) |
-| `input/3d/char.fbx` | `ComfyUI/input/3d/char.fbx` |
-| `output/3d/char.fbx` | `ComfyUI/output/3d/char.fbx` |
-| `D:\Models\char.fbx` | `D:\Models\char.fbx` (absolute path) |
-| (empty) | Uses default wooden boy model |
+| Input                  | Resolved Path                                     |
+| ---------------------- | ------------------------------------------------- |
+| `3d/char.fbx`        | `ComfyUI/input/3d/char.fbx` (default to input/) |
+| `input/3d/char.fbx`  | `ComfyUI/input/3d/char.fbx`                     |
+| `output/3d/char.fbx` | `ComfyUI/output/3d/char.fbx`                    |
+| `D:\Models\char.fbx` | `D:\Models\char.fbx` (absolute path)            |
+| (empty)                | Uses default wooden boy model                     |
 
 #### Supported Rigs
+
 - **Mixamo**: Full automatic bone mapping with `mixamorig:` prefix
 
 > **Note**: The retargeting code (`retarget_fbx.py`) is adapted from [ComfyUI-HyMotion](https://github.com/Aero-Ex/ComfyUI-HyMotion).
 
 ### HY-Motion Save NPZ
+
 Save in NPZ format.
 
 ## Example Workflow
 
 ### Basic Workflow
+
 ```
 [HY-Motion Load LLM] ──┐
                        ├──> [HY-Motion Encode Text] ──┐
@@ -196,6 +216,7 @@ Save in NPZ format.
 ```
 
 ### With Prompt Rewrite (Recommended)
+
 ```
 [HY-Motion Load Prompter] ──> [HY-Motion Rewrite Prompt] ──┬──> rewritten_text ──> [HY-Motion Encode Text]
                                       │                    │
@@ -209,12 +230,14 @@ Save in NPZ format.
 ```
 
 The Prompt Rewrite workflow:
+
 1. Takes your text input (supports Chinese/English)
 2. Optimizes it to a standardized English description
 3. Estimates appropriate motion duration
 4. Feeds both to the generation pipeline
 
 ### For GGUF
+
 ```
 [HY-Motion Load LLM (GGUF)] ──> [HY-Motion Encode Text] ──> ...
 ```
@@ -222,6 +245,7 @@ The Prompt Rewrite workflow:
 ## Notes
 
 1. **VRAM Requirements**:
+
    - HY-Motion-1.0: ~8GB+ VRAM (model only)
    - HY-Motion-1.0-Lite: ~4GB+ VRAM (model only)
    - Qwen3-8B Text Encoder (additional):
@@ -230,27 +254,25 @@ The Prompt Rewrite workflow:
      - HuggingFace `quantization=int4`: ~4GB VRAM
      - GGUF Q4_K_M: ~5GB VRAM
    - Text2MotionPrompter (optional): ~2-3GB VRAM (4bit quantized)
-
 2. **CPU Offload**:
+
    - All LLM loader nodes support `offload_to_cpu` option
    - When enabled, the model runs entirely on CPU (no GPU VRAM required)
    - Trade-off: Slower inference speed but allows running multiple LLMs simultaneously
    - Recommended: Enable CPU offload for Prompter if VRAM is limited, keep Text Encoder on GPU for faster encoding
-
 3. **GGUF Requirements**:
+
    - Requires `transformers>=4.40`
    - GGUF files must be downloaded manually
    - Place in `ComfyUI/models/HY-Motion/ckpts/GGUF/`
-
 4. **FBX Export**: Requires additional fbxsdkpy installation:
+
    ```bash
    pip install fbxsdkpy --extra-index-url https://gitlab.inria.fr/api/v4/projects/18692/packages/pypi/simple
    ```
 
    **Having trouble installing fbxsdkpy?** Use the **HY-Motion Preview Animation (3D)** node instead! It provides a pure frontend GLB export with skeleton animation that works without any additional Python dependencies.
-
 5. **Text Encoder**: CLIP model will be downloaded automatically on first use. Qwen3-8B will be downloaded automatically when using Load LLM node (not GGUF).
-
 6. **Prompt Rewrite**: Text2MotionPrompter model will be downloaded automatically on first use (~2-3GB). Supports Chinese and English input.
 
 ## License
